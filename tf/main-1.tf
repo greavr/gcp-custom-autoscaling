@@ -45,6 +45,8 @@ resource "google_cloudfunctions_function" "autoscaler-function" {
     "new_session_lock_timeout" = var.timeout
   }
 
+   depends_on = [google_vpc_access_connector.connector]
+
 }
 
 # Assign permissions to allow anon invocation
@@ -71,4 +73,12 @@ resource "google_cloud_scheduler_job" "check_sessions" {
     http_method = "POST"
     uri         = google_cloudfunctions_function.autoscaler-function.https_trigger_url
   }
+
+   depends_on = [google_app_engine_application.app]
+}
+
+# Required App Engine :(
+resource "google_app_engine_application" "app" {
+  project     = var.gcp-project-name
+  location_id = var.region
 }
