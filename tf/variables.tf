@@ -74,7 +74,7 @@ variable "cf-name" {
 # Cloud Function Max Sessions Per Box
 variable "max_sessions" { 
     type = number
-    default = 18
+    default = 15
 }
 
 # Cloud Function Name

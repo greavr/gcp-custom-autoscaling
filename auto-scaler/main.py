@@ -7,6 +7,7 @@ import requests
 import json
 from datetime import datetime
 import time
+import math
 
 # Build Credentials
 credentials = GoogleCredentials.get_application_default()
@@ -16,6 +17,8 @@ service = discovery.build('compute', 'v1', credentials=credentials)
 project = os.environ['GCP_PROJECT']
 region = os.environ['mig_region']
 instance_group_manager = os.environ['mig_name']
+ScaleUpThreshold = int(os.environ['upper_session_count'])
+ScaleDownThreshold = int(os.environ['lower_session_count'])
 
 # App Variables
 InstanceList = []
@@ -107,6 +110,34 @@ def LogMetrics():
                 (now - point.interval.end_time.seconds) * 10**9)
             client.create_time_series(project_name, [series])
 
+# Handle Autoscaling
+def Autoscale():
+    global InstanceList, service, credentials, project, region, instance_group_manager, ScaleUpThreshold, ScaleDownThreshold
+    # Function to autoscale the Managed instance group
+    TotalSessionCount = 0
+    ScaleDownCount = 0
+    ScaleUpValue = 0
+    ScaleDownInstanceList = {}
+    
+    # First get current status
+    for aInstance in InstanceList:
+        # Get count of total instances
+        TotalSessionCount += aInstance['session_count']
+        # Check to see if instance is empty
+        if (aInstance['session_count'] == 0):
+            ScaleDownInstanceList[aInstance['name']] = aInstance['zone']
+            ScaleDownCount += 1
+    
+    # Check ratio of overall server count * ScaleUpThreshold to see if we need more servers
+    print("Currently have %s Sessions over %s hosts (after scaledown)" % (TotalSessionCount,len(InstanceList)-ScaleDownCount))
+    print("Going to scale down %s servers" %(ScaleDownCount))
+    safeValue = (len(InstanceList)-ScaleDownCount) * ScaleUpThreshold
+    if (safeValue >= TotalSessionCount):
+        ScaleUpValue = math.ceil((TotalSessionCount-safeValue)/ScaleUpThreshold)
+        print("Scaling up by %s sessions" % (ScaleUpValue))
+
+
+
 ## Main Loop
 def MainThread(request):
     global InstanceList
@@ -118,6 +149,9 @@ def MainThread(request):
 
     # Save Session Count to Stackdriver
     LogMetrics()
+
+    # Autoscale
+    Autoscale()
 
     # Validate output
     pprint(InstanceList)
