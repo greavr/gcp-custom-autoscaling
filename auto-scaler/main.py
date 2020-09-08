@@ -92,7 +92,7 @@ def MainThread(request):
 
     # Validate output
     pprint(InstanceList)
-    return f'InstanceList'
+    return json.dumps(InstanceList)
     
 
 if __name__ == "__main__":
