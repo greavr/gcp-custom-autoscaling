@@ -12,11 +12,12 @@ ServerName = socket.gethostname()
 # Main Page
 @app.route("/", methods=['GET'])
 def Main():
+    global SessionCount
     # Return current Session Count & Server Name
     returnValue = {}
     returnValue["ServerName"] = ServerName
     returnValue["SessionCount"] = SessionCount
-
+    SessionCount = random.randint(0,20)
     return jsonify(returnValue)
 
 # Increment Value

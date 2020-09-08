@@ -1,7 +1,7 @@
 # GCP Project Name
 variable "gcp-project-name" {
     type = string
-    default = "prodapp1-214321"
+    default = "alien-handler-214321"
 }
 
 # GCP VPC
@@ -87,4 +87,10 @@ variable "min_sessions" {
 variable "timeout" { 
     type = number
     default = 60
+}
+
+# Cloud Schedule timing
+variable "cron-schedule" {
+    type = string
+    default = "*/5 * * * *"
 }

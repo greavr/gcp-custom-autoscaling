@@ -1,10 +1,12 @@
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
+from google.cloud import monitoring_v3
 import os
 from pprint import pprint
 import requests
 import json
 from datetime import datetime
+import time
 
 # Build Credentials
 credentials = GoogleCredentials.get_application_default()
@@ -81,6 +83,30 @@ def ReviewInstances():
     #Update list
     InstanceList = tempList
 
+# Function to save metrics to stackdriver
+def LogMetrics():
+    global service, credentials, project, InstanceList
+    # Itterate through metrics and save to GCP Stackdriver
+
+    client = monitoring_v3.MetricServiceClient()
+    project_name = client.project_path(project)
+    # Itterate Through instances
+    for aInstance in InstanceList:
+        # Only add values if session count is not -1
+        if (aInstance['session_count'] != -1):
+            series = monitoring_v3.types.TimeSeries()
+            series.metric.type = 'custom.googleapis.com/sessions/session_count'
+            series.resource.type = 'gce_instance'
+            series.resource.labels['instance_id'] = aInstance['name']
+            series.resource.labels['zone'] = aInstance['zone']
+            point = series.points.add()
+            point.value.double_value = aInstance['session_count']
+            now = time.time()
+            point.interval.end_time.seconds = int(now)
+            point.interval.end_time.nanos = int(
+                (now - point.interval.end_time.seconds) * 10**9)
+            client.create_time_series(project_name, [series])
+
 ## Main Loop
 def MainThread(request):
     global InstanceList
@@ -89,6 +115,9 @@ def MainThread(request):
     InstanceList = GetInstanceList()
     # Itterate over instances to get session count
     ReviewInstances()
+
+    # Save Session Count to Stackdriver
+    LogMetrics()
 
     # Validate output
     pprint(InstanceList)

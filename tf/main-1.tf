@@ -55,3 +55,20 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
   member = "allUsers"
 }
 
+# Cloud Scheduler
+resource "google_cloud_scheduler_job" "check_sessions" {
+  name             = "check_sessions"
+  description      = "Check Server Sessions"
+  schedule         = var.cron-schedule
+  time_zone        = "America/New_York"
+  attempt_deadline = "240s"
+
+  retry_config {
+    retry_count = 1
+  }
+
+  http_target {
+    http_method = "POST"
+    uri         = google_cloudfunctions_function.autoscaler-function.https_trigger_url
+  }
+}
