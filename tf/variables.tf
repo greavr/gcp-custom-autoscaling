@@ -10,6 +10,18 @@ variable "gcp-vpc" {
     default = "default"
 }
 
+# GCP Server Subnet
+variable "gcp-serverless" {
+    type = string
+    default = "10.8.0.0/28"
+}
+
+# GCP VPC Connector Name
+variable "vpc-connector-name" { 
+    type = string
+    default = "autoscaler-connector"
+}
+
 # Instance size
 variable "instance-type" { 
     type = string
@@ -19,13 +31,13 @@ variable "instance-type" {
 # Instance Region
 variable "region" { 
     type = string
-    default = "us-west1"
+    default = "us-west2"
 }
 
 # Instance Zone
 variable "zone" { 
     type = string
-    default = "us-west1-a"
+    default = "us-west2-a"
 }
 
 
@@ -44,11 +56,35 @@ variable "mig-name" {
 # Size of Managed Instance Group at start
 variable "mig-size" { 
     type = number
-    default = 10
+    default = 3
 }
 
 # Used to upload code for instances & cf too
 variable "bucket-name" {
     type = string
     default = "_bootstrap"
+}
+
+# Cloud Function Name
+variable "cf-name" { 
+    type = string
+    default = "my_autoscaler"
+}
+
+# Cloud Function Max Sessions Per Box
+variable "max_sessions" { 
+    type = number
+    default = 18
+}
+
+# Cloud Function Name
+variable "min_sessions" { 
+    type = number
+    default = 5
+}
+
+# Cloud Function Name
+variable "timeout" { 
+    type = number
+    default = 60
 }

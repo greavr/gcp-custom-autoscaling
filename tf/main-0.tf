@@ -21,6 +21,13 @@ resource "google_storage_bucket" "bucket" {
   name =  format("%s%s", var.gcp-project-name, var.bucket-name)
 }
 
+# Create Zip file
+data "archive_file" "session_code" {
+  type        = "zip"
+  output_path = "../artifacts/code.zip"
+  source_dir = "../instance-code"
+}
+
 resource "google_storage_bucket_object" "code" {
   name   = "code.zip"
   bucket = google_storage_bucket.bucket.name
