@@ -193,11 +193,11 @@ cython_debug/
 *.jar
 *.rar
 *.tar
-*.zip
+**.zip
 
 # Logs and databases #
 ######################
-*.log
+**.log
 *.sql
 *.sqlite
 
