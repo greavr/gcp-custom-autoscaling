@@ -1,10 +1,17 @@
 # Cloud Function Code
 ## VPC Connector
+resource "google_project_service" "enable-vpc-access" {
+  project = var.gcp-project-name
+  service = "vpcaccess.googleapis.com"
+}
+
 resource "google_vpc_access_connector" "connector" {
   name          = var.vpc-connector-name
   region        = var.region
   ip_cidr_range = var.gcp-serverless
   network       = var.gcp-vpc
+
+  depends_on = [google_project_service.enable-vpc-access]
 }
 
 # Create Zip file
@@ -21,7 +28,18 @@ resource "google_storage_bucket_object" "cf_code" {
   source = "../artifacts/cloud_function.zip"
 }
 
+resource "google_project_service" "enable-cloud-build" {
+  project = var.gcp-project-name
+  service = "cloudbuild.googleapis.com"
+}
+
+
 ## CF Code
+resource "google_project_service" "enable-cloud-functions" {
+  project = var.gcp-project-name
+  service = "cloudfunctions.googleapis.com"
+}
+
 resource "google_cloudfunctions_function" "autoscaler-function" {
   description = "Custom Autoscaler"
   runtime     = "python37"
@@ -58,6 +76,11 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
 }
 
 # Cloud Scheduler
+resource "google_project_service" "enable-schedule" {
+  project = var.gcp-project-name
+  service = "cloudscheduler.googleapis.com"
+}
+
 resource "google_cloud_scheduler_job" "check_sessions" {
   name             = "check_sessions"
   description      = "Check Server Sessions"
@@ -74,7 +97,6 @@ resource "google_cloud_scheduler_job" "check_sessions" {
     uri         = google_cloudfunctions_function.autoscaler-function.https_trigger_url
   }
 
-   depends_on = [google_app_engine_application.app]
 }
 
 # Required App Engine :(

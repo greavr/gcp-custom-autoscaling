@@ -1,7 +1,7 @@
 # GCP Project Name
 variable "gcp-project-name" {
     type = string
-    default = "alien-handler-214321"
+    default = "rgreaves-test"
 }
 
 # GCP VPC
@@ -92,5 +92,5 @@ variable "timeout" {
 # Cloud Schedule timing
 variable "cron-schedule" {
     type = string
-    default = "*/5 * * * *"
+    default = "* * * * *"
 }

@@ -16,6 +16,16 @@ provider "google-beta" {
   project = var.gcp-project-name
 }
 
+resource "google_project_service" "enable-compute" {
+  project = var.gcp-project-name
+  service = "compute.googleapis.com"
+}
+ 
+resource "google_project_service" "enable-storage" {
+  project = var.gcp-project-name
+  service = "storage-component.googleapis.com"
+}
+
 # Create Bucket for code & Upload it
 resource "google_storage_bucket" "bucket" {
   name =  format("%s%s", var.gcp-project-name, var.bucket-name)
@@ -52,8 +62,16 @@ resource "google_compute_firewall" "session" {
   }
 
   source_ranges = ["0.0.0.0/0"]
-   target_tags = ["session-hosts"]
+  target_tags = ["session-hosts"]
+
+  depends_on = [google_project_service.enable-compute]
 }
+
+# Service Account
+data "google_compute_default_service_account" "default" {
+}
+
+
 
 # Create Instance template
 resource "google_compute_instance_template" "default" {
@@ -91,6 +109,8 @@ resource "google_compute_instance_template" "default" {
   service_account {
     scopes = ["userinfo-email", "compute-ro", "storage-ro"]
   }
+
+  depends_on = [google_project_service.enable-compute]
 }
 
 # Create Managed Instance Group
@@ -105,6 +125,8 @@ resource "google_compute_health_check" "autohealing" {
     request_path = "/"
     port         = "8080"
   }
+
+  depends_on = [google_project_service.enable-compute]
 }
 
 resource "google_compute_region_instance_group_manager" "sessions" {
@@ -121,4 +143,6 @@ resource "google_compute_region_instance_group_manager" "sessions" {
     health_check      = google_compute_health_check.autohealing.id
     initial_delay_sec = 300
   }
+
+  depends_on = [google_project_service.enable-compute]
 }

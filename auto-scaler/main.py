@@ -131,9 +131,9 @@ def Autoscale():
     # Check ratio of overall server count * ScaleUpThreshold to see if we need more servers
     print("Currently have %s Sessions over %s hosts (after scaledown)" % (TotalSessionCount,len(InstanceList)-ScaleDownCount))
     print("Going to scale down %s servers" %(ScaleDownCount))
-    safeValue = (len(InstanceList)-ScaleDownCount) * ScaleUpThreshold
-    if (safeValue >= TotalSessionCount):
-        ScaleUpValue = math.ceil((TotalSessionCount-safeValue)/ScaleUpThreshold)
+    safeSessionTotal = (len(InstanceList)-ScaleDownCount) * ScaleUpThreshold
+    if (safeSessionTotal >= TotalSessionCount):
+        ScaleUpValue = math.ceil((TotalSessionCount-safeSessionTotal)/ScaleUpThreshold)
         print("Scaling up by %s sessions" % (ScaleUpValue))
 
 

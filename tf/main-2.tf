@@ -1,3 +1,9 @@
+## Stackdriver custom metric
+resource "google_project_service" "enable-stackdriver" {
+  project = var.gcp-project-name
+  service = "stackdriver.googleapis.com"
+}
+
 resource "google_monitoring_metric_descriptor" "session_count" {
   description = "Current Session Status per server"
   display_name = "Current Sessions"
