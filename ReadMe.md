@@ -30,6 +30,6 @@ python3 auto-scaler/main.py
 
 ## Autoscaling behavior
 * Will remove servers with currently 0 sessions
-* Will Scale if the average session per server is above `lower_session` limit, calculated like this:
+* Will Scale if the average session per server is above `lower_session` limit, calculated like this:\
 `ServerAverage = CountOfNoneZeroSessionServers/TotalActiveSessions`
-* Will recommend servers which are closest `upper_session` limit without going over
+* Will recommend servers which are closest `upper_session` limit without going over ~~*[Next Version]*~~
