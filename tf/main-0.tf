@@ -19,11 +19,13 @@ provider "google-beta" {
 resource "google_project_service" "enable-compute" {
   project = var.gcp-project-name
   service = "compute.googleapis.com"
+  disable_on_destroy = false
 }
  
 resource "google_project_service" "enable-storage" {
   project = var.gcp-project-name
   service = "storage-component.googleapis.com"
+  disable_on_destroy = false
 }
 
 # Create Bucket for code & Upload it
@@ -82,7 +84,7 @@ resource "google_compute_instance_template" "default" {
 
   instance_description = "Sample Session Instance"
   machine_type         = var.instance-type
-  can_ip_forward       = false
+  can_ip_forward       = true
 
   scheduling {
     automatic_restart   = true

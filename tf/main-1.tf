@@ -31,6 +31,7 @@ resource "google_storage_bucket_object" "cf_code" {
 resource "google_project_service" "enable-cloud-build" {
   project = var.gcp-project-name
   service = "cloudbuild.googleapis.com"
+  disable_on_destroy = false
 }
 
 
@@ -38,6 +39,7 @@ resource "google_project_service" "enable-cloud-build" {
 resource "google_project_service" "enable-cloud-functions" {
   project = var.gcp-project-name
   service = "cloudfunctions.googleapis.com"
+  disable_on_destroy = false
 }
 
 resource "google_cloudfunctions_function" "autoscaler-function" {
@@ -79,6 +81,7 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
 resource "google_project_service" "enable-schedule" {
   project = var.gcp-project-name
   service = "cloudscheduler.googleapis.com"
+  disable_on_destroy = false
 }
 
 resource "google_cloud_scheduler_job" "check_sessions" {

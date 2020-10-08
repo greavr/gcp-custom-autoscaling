@@ -1,7 +1,7 @@
 # GCP Project Name
 variable "gcp-project-name" {
     type = string
-    default = "rgreaves-test"
+    default = "rl-autoscaler"
 }
 
 # GCP VPC
@@ -56,7 +56,7 @@ variable "mig-name" {
 # Size of Managed Instance Group at start
 variable "mig-size" { 
     type = number
-    default = 3
+    default = 10
 }
 
 # Used to upload code for instances & cf too

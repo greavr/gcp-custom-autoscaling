@@ -1,4 +1,5 @@
 from googleapiclient import discovery
+import google.cloud.logging
 from oauth2client.client import GoogleCredentials
 from google.cloud import monitoring_v3
 import os
@@ -8,10 +9,13 @@ import json
 from datetime import datetime
 import time
 import math
+import logging
+import random
 
 # Build Credentials
 credentials = GoogleCredentials.get_application_default()
 service = discovery.build('compute', 'v1', credentials=credentials)
+LoggingClient = google.cloud.logging.Client()
 
 # Env Variables
 project = os.environ['GCP_PROJECT']
@@ -41,6 +45,10 @@ def GetInstanceList():
         print ("Found: " + thisHost)
         ResultList.append(aServer)
 
+    if not ResultList:
+        logging.error("Unable to find any hosts in %s MIG, in the %s region",str(instance_group_manager),str(region))
+    else:
+        logging.info("Found %s instances in the %s MIG",str(len(ResultList)),str(instance_group_manager))
     #Return value
     return ResultList
 
@@ -55,6 +63,7 @@ def GetInstanceIP(zone,instance):
     try:
         external_ip = response["networkInterfaces"][0]["networkIP"]
     except:
+        logging.error("Unable to find IP for %s in the %s zone",str(instance),str(zone))
         external_ip = "0.0.0.0"
 
     return external_ip
@@ -64,9 +73,10 @@ def GetSessionCount(InstanceIP):
     # Make a request to curl a instance to get session count
     url = "http://" + InstanceIP + ":8080/"
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=2)
         return response.json()['SessionCount']
     except:
+        logging.error("Unable to get session count from http://" + InstanceIP + ":8080/")
         return -1
 
 # Main Function for reviewing instances
@@ -92,7 +102,7 @@ def LogMetrics():
     # Itterate through metrics and save to GCP Stackdriver
 
     client = monitoring_v3.MetricServiceClient()
-    project_name = client.project_path(project)
+    project_name = f"projects/{project}"
     # Itterate Through instances
     for aInstance in InstanceList:
         # Only add values if session count is not -1
@@ -102,19 +112,52 @@ def LogMetrics():
             series.resource.type = 'gce_instance'
             series.resource.labels['instance_id'] = aInstance['name']
             series.resource.labels['zone'] = aInstance['zone']
-            point = series.points.add()
-            point.value.double_value = aInstance['session_count']
             now = time.time()
-            point.interval.end_time.seconds = int(now)
-            point.interval.end_time.nanos = int(
-                (now - point.interval.end_time.seconds) * 10**9)
-            client.create_time_series(project_name, [series])
+            seconds = int(now)
+            nanos = int((now - seconds) * 10 ** 9)
+            interval = monitoring_v3.TimeInterval(
+                {"end_time": {"seconds": seconds, "nanos": nanos}}
+            )
+            point = monitoring_v3.Point({"interval": interval, "value": {"double_value": aInstance['session_count']}})
+            series.points = [point]
+            client.create_time_series(request={"name": project_name, "time_series": [series]})
+
+
+#Function To Remove Instance from MIG
+def RemoveServers(InstanceList):
+    global service, credentials, project, instance_group_manager, region
+
+    #Build the request body
+    ## Build instance url zones/{ZONE}/instances/{INSTANCE NAME}
+    FormatedInstances = []
+    for aInstance in InstanceList:
+        serverString = f"zones/{InstanceList[aInstance]}/instances/{aInstance}"
+        FormatedInstances.append(serverString)
+
+
+    RequestBody = {}
+    RequestBody["instances"] = FormatedInstances
+    print(str(RequestBody))
+
+    #Build and send the request
+    try:
+        request = service.regionInstanceGroupManagers().deleteInstances(project=project, region=region, instanceGroupManager=instance_group_manager, body=RequestBody)
+        response = request.execute()
+    except:
+        logging.error("Unable to remove instances from MIG")
+
+#Function Add Instance to MIG
+def AddInstance(NewSize):
+    global service, credentials, project, instance_group_manager, region
+    request = service.regionInstanceGroupManagers().resize(project=project, region=region, instanceGroupManager=instance_group_manager, size=NewSize)
+    response = request.execute()
 
 # Handle Autoscaling
 def Autoscale():
     global InstanceList, service, credentials, project, region, instance_group_manager, ScaleUpThreshold, ScaleDownThreshold
     # Function to autoscale the Managed instance group
     TotalSessionCount = 0
+    AverageSessionCount = 0
     ScaleDownCount = 0
     ScaleUpValue = 0
     ScaleDownInstanceList = {}
@@ -123,24 +166,43 @@ def Autoscale():
     for aInstance in InstanceList:
         # Get count of total instances
         TotalSessionCount += aInstance['session_count']
+
         # Check to see if instance is empty
         if (aInstance['session_count'] == 0):
             ScaleDownInstanceList[aInstance['name']] = aInstance['zone']
             ScaleDownCount += 1
+
+    # Now check to see how many servers need to be added
+    ServerCountAfterScaleDown = len(InstanceList)-ScaleDownCount
+    AverageSessionCount = round(TotalSessionCount/ServerCountAfterScaleDown)
+    logging.info("Currently have %s Sessions over %s hosts, with an average of %s on None-zero session servers",str(TotalSessionCount),str(ServerCountAfterScaleDown),str(AverageSessionCount))
+
+    # Autoscale up logic
+    if AverageSessionCount >= ScaleUpThreshold:
+        # First check if there is an currently empty server which can be used
+        if ScaleDownCount > 0:
+            ScaleDownCount -= 1
+            logging.info("Not resizing due to instance with 0 sessions found")
+            ScaleDownInstanceList.pop(0)
+        else:
+            # If not add a Server
+            NewSize = len(InstanceList)+1
+            logging.info("Increasing %s MIG size to %s", str(instance_group_manager), str(NewSize))
+            AddInstance(NewSize)
     
-    # Check ratio of overall server count * ScaleUpThreshold to see if we need more servers
-    print("Currently have %s Sessions over %s hosts (after scaledown)" % (TotalSessionCount,len(InstanceList)-ScaleDownCount))
-    print("Going to scale down %s servers" %(ScaleDownCount))
-    safeSessionTotal = (len(InstanceList)-ScaleDownCount) * ScaleUpThreshold
-    if (safeSessionTotal >= TotalSessionCount):
-        ScaleUpValue = math.ceil((TotalSessionCount-safeSessionTotal)/ScaleUpThreshold)
-        print("Scaling up by %s sessions" % (ScaleUpValue))
-
-
+    # Autoscale down logic
+    if ScaleDownCount > 0:
+        # Itterate through instances and remove them
+        logging.info("Scaling down %s due to 0 sessions", str(ScaleDownInstanceList))
+        RemoveServers(ScaleDownInstanceList)
 
 ## Main Loop
 def MainThread(request):
-    global InstanceList
+    global InstanceList, LoggingClient
+
+    # Setup the logger
+    LoggingClient.get_default_handler()
+    LoggingClient.setup_logging()
     
     # Main Loop
     InstanceList = GetInstanceList()
@@ -156,7 +218,3 @@ def MainThread(request):
     # Validate output
     pprint(InstanceList)
     return json.dumps(InstanceList)
-    
-
-if __name__ == "__main__":
-    MainThread("Blah")
