@@ -78,12 +78,6 @@ variable "max_sessions" {
 }
 
 # Cloud Function Name
-variable "min_sessions" { 
-    type = number
-    default = 5
-}
-
-# Cloud Function Name
 variable "timeout" { 
     type = number
     default = 60

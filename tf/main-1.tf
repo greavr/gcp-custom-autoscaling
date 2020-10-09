@@ -21,11 +21,23 @@ data "archive_file" "cd-autoscaler" {
   source_dir = "../auto-scaler"
 }
 
+data "archive_file" "server-recommender" {
+  type        = "zip"
+  output_path = "../artifacts/server-recommender.zip"
+  source_dir = "../server-recommender"
+}
+
 ## CF Code Upload
 resource "google_storage_bucket_object" "cf_code" {
   name   = "cloud_function.zip"
   bucket = google_storage_bucket.bucket.name
   source = "../artifacts/cloud_function.zip"
+}
+
+resource "google_storage_bucket_object" "server-recommender_code" {
+  name   = "server-recommender.zip"
+  bucket = google_storage_bucket.bucket.name
+  source = "../artifacts/server-recommender.zip"
 }
 
 resource "google_project_service" "enable-cloud-build" {
@@ -61,8 +73,31 @@ resource "google_cloudfunctions_function" "autoscaler-function" {
     "mig_name" = var.mig-name
     "mig_region" = var.region
     "upper_session_count" = var.max_sessions
-    "lower_session_count" = var.min_sessions
-    "new_session_lock_timeout" = var.timeout
+  }
+
+   depends_on = [google_vpc_access_connector.connector]
+
+}
+
+resource "google_cloudfunctions_function" "server-recommender" {
+  description = "Server-Recommender"
+  runtime     = "python37"
+  region  = var.region
+  name = "Server-Recommender"
+
+  available_memory_mb   = 128
+  source_archive_bucket = google_storage_bucket.bucket.name
+  source_archive_object = google_storage_bucket_object.cf_code.name
+  trigger_http          = true
+  timeout               = 60
+  entry_point           = "MainThread"
+
+  vpc_connector = google_vpc_access_connector.connector.name
+
+   environment_variables = {
+    "mig_name" = var.mig-name
+    "mig_region" = var.region
+    "upper_session_count" = var.max_sessions
   }
 
    depends_on = [google_vpc_access_connector.connector]

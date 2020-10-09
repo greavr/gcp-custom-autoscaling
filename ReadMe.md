@@ -23,8 +23,7 @@ terraform destroy -auto-approve`
 export GCP_PROJECT='rg-autoscaler'
 export mig_region='us-west2'
 export mig_name='testing-mig'
-export upper_session_count=20
-export lower_session_count=15
+export upper_session_count=15
 pip3 install -r auto-scaler/requirements.txt --upgrade
 python3 auto-scaler/main.py
 ```
