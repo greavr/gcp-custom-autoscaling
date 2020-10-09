@@ -2,6 +2,7 @@ from googleapiclient import discovery
 import google.cloud.logging
 from oauth2client.client import GoogleCredentials
 from google.cloud import monitoring_v3
+from google.cloud import datastore
 import os
 from pprint import pprint
 import requests
@@ -193,6 +194,30 @@ def Autoscale():
         logging.info("Scaling down %s due to 0 sessions", str(ScaleDownInstanceList))
         RemoveServers(ScaleDownInstanceList)
 
+# Save Values to Datastore
+def SaveToDatastore():
+    global instance_group_manager, InstanceList,project
+    # Save values to Datastore for the recommender Service
+    datastore_client = datastore.Client(project=project)
+
+    # The kind for the new entity
+    kind = 'Session_levels'
+
+    # The name/ID for the new entity
+    name = instance_group_manager
+
+    # The Cloud Datastore key for the new entity
+    task_key = datastore_client.key(kind, name)
+
+    # Prepares the new entity
+    task = datastore.Entity(key=task_key)
+    for aInstance in InstanceList:
+        task[aInstance["name"]] = aInstance["session_count"]
+
+    # Saves the entity
+    datastore_client.put(task)
+
+
 ## Main Loop
 def MainThread(request):
     global InstanceList, LoggingClient
@@ -204,6 +229,7 @@ def MainThread(request):
     
     # Main Loop
     InstanceList = GetInstanceList()
+
     # Itterate over instances to get session count
     ReviewInstances()
 
@@ -212,6 +238,9 @@ def MainThread(request):
 
     # Autoscale
     Autoscale()
+
+    # Save Values to DS
+    SaveToDatastore()
 
     # Validate output
     return json.dumps(InstanceList)
