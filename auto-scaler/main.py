@@ -42,7 +42,6 @@ def GetInstanceList():
         thisZone = url.split("/")[8]
         thisHost = url.split("/")[10]
         aServer = { 'name' : thisHost, "zone" : thisZone }
-        print ("Found: " + thisHost)
         ResultList.append(aServer)
 
     if not ResultList:
@@ -56,11 +55,11 @@ def GetInstanceList():
 def GetInstanceIP(zone,instance):
     # Use global variables
     global service, credentials, project, region, instance_group_manager
-    request = service.instances().get(project=project, zone=zone, instance=instance)
-    response = request.execute()
-    # Parse out key information
-    valueToFind = "networkIP" # InternalIP
     try:
+        request = service.instances().get(project=project, zone=zone, instance=instance)
+        response = request.execute()
+        # Parse out key information
+        valueToFind = "networkIP" # InternalIP
         external_ip = response["networkInterfaces"][0]["networkIP"]
     except:
         logging.error("Unable to find IP for %s in the %s zone",str(instance),str(zone))
@@ -98,7 +97,7 @@ def ReviewInstances():
 
 # Function to save metrics to stackdriver
 def LogMetrics():
-    global service, credentials, project, InstanceList
+    global service, credentials, project, InstanceList, instance_group_manager
     # Itterate through metrics and save to GCP Stackdriver
 
     client = monitoring_v3.MetricServiceClient()
@@ -122,7 +121,6 @@ def LogMetrics():
             series.points = [point]
             client.create_time_series(request={"name": project_name, "time_series": [series]})
 
-
 #Function To Remove Instance from MIG
 def RemoveServers(InstanceList):
     global service, credentials, project, instance_group_manager, region
@@ -137,7 +135,6 @@ def RemoveServers(InstanceList):
 
     RequestBody = {}
     RequestBody["instances"] = FormatedInstances
-    print(str(RequestBody))
 
     #Build and send the request
     try:
@@ -204,6 +201,7 @@ def MainThread(request):
     LoggingClient.get_default_handler()
     LoggingClient.setup_logging()
     
+    
     # Main Loop
     InstanceList = GetInstanceList()
     # Itterate over instances to get session count
@@ -216,5 +214,7 @@ def MainThread(request):
     Autoscale()
 
     # Validate output
-    pprint(InstanceList)
     return json.dumps(InstanceList)
+
+if __name__ == "__main__":
+    MainThread("")

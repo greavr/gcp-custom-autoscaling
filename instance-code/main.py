@@ -5,7 +5,7 @@ import socket
 
 ## Config App
 app = Flask(__name__)
-SessionCount = random.randint(0,20)
+SessionCount = random.randint(0,30)
 ServerName = socket.gethostname()
 
 

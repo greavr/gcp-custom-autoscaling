@@ -1,7 +1,7 @@
 # GCP Project Name
 variable "gcp-project-name" {
     type = string
-    default = "rl-autoscaler"
+    default = "rg-autoscaler"
 }
 
 # GCP VPC
@@ -56,7 +56,7 @@ variable "mig-name" {
 # Size of Managed Instance Group at start
 variable "mig-size" { 
     type = number
-    default = 10
+    default = 5
 }
 
 # Used to upload code for instances & cf too
@@ -92,5 +92,5 @@ variable "timeout" {
 # Cloud Schedule timing
 variable "cron-schedule" {
     type = string
-    default = "* * * * *"
+    default = "*/5 * * * *"
 }
