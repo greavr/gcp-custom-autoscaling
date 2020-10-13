@@ -77,18 +77,6 @@ variable "max_sessions" {
     default = 15
 }
 
-# Cloud Function Name
-variable "min_sessions" { 
-    type = number
-    default = 5
-}
-
-# Cloud Function Name
-variable "timeout" { 
-    type = number
-    default = 60
-}
-
 # Cloud Schedule timing
 variable "cron-schedule" {
     type = string

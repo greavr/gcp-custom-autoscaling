@@ -12,21 +12,13 @@ terraform -install-autocomplete
 ## Run TF
 ```
 cd tf/
+terraform init
 terraform plan
 terraform apply -auto-approve
+```
 Then to destroy
+```
 terraform destroy -auto-approve`
-```
-
-## Running the CF
-```
-export GCP_PROJECT='rg-autoscaler'
-export mig_region='us-west2'
-export mig_name='testing-mig'
-export upper_session_count=20
-export lower_session_count=15
-pip3 install -r auto-scaler/requirements.txt --upgrade
-python3 auto-scaler/main.py
 ```
 
 ## Autoscaling behavior

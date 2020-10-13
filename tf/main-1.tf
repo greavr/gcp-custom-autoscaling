@@ -61,8 +61,6 @@ resource "google_cloudfunctions_function" "autoscaler-function" {
     "mig_name" = var.mig-name
     "mig_region" = var.region
     "upper_session_count" = var.max_sessions
-    "lower_session_count" = var.min_sessions
-    "new_session_lock_timeout" = var.timeout
   }
 
    depends_on = [google_vpc_access_connector.connector]
@@ -85,7 +83,7 @@ resource "google_project_service" "enable-schedule" {
 }
 
 resource "google_cloud_scheduler_job" "check_sessions" {
-  name             = "check_sessions"
+  name             = format("check_sessions-%s", var.bucket-name)
   description      = "Check Server Sessions"
   schedule         = var.cron-schedule
   time_zone        = "America/New_York"
