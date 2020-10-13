@@ -17,7 +17,7 @@ def Main():
     returnValue = {}
     returnValue["ServerName"] = ServerName
     returnValue["SessionCount"] = SessionCount
-    SessionCount = random.randint(0,20)
+    SessionCount = random.randint(0,30)
     return jsonify(returnValue)
 
 # Increment Value
