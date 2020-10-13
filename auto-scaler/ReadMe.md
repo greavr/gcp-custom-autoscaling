@@ -1,9 +1,9 @@
-## Running the CF
+## Running the CF Code Locally
 ```
 export GCP_PROJECT='rg-autoscaler'
 export mig_region='us-west2'
 export mig_name='testing-mig'
-export upper_session_count=20
+export upper_session_count=15
 pip3 install -r auto-scaler/requirements.txt --upgrade
 python3 auto-scaler/main.py
 ```
@@ -14,7 +14,13 @@ python3 auto-scaler/main.py
 `upper_session_count` - max num of sessions per node \
 
 ## checks:
-`/` - returns list of all servers and session counts \ 
+`/` - returns list of all servers and session counts 
 
 ## Permissions:
-- compute.instances.setLabels
+- `compute.instanceGroupManagers.get`
+- `compute.instanceGroupManagers.update`
+- `compute.instances.get`
+- `datastore.entities.create`
+- `datastore.entities.update`
+- `logging.logEntries.create`
+- `monitoring.timeSeries.create`

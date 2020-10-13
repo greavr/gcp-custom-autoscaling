@@ -2,7 +2,7 @@
 
 This code is bootstrapped from a GCS bucket zip file and run in the image. \
 \
-The code to run the software is:\
+The code to run the software is:
 ```
 apt-get install python3-pip unzip supervisor -y
 pip3 install -r requirements.txt

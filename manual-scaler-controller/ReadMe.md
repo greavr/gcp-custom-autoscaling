@@ -3,8 +3,9 @@ This function disables autoscaling by disabling the autoscaling cron-scheduler. 
 ## Env Vars:
 `mig_name` - Name of the managed instance group (mig) \
 `mig_region` - Region of the mig \
+`GCP_PROJECT` - Auto set value for GCP project
 
-## Running the CF
+## Running the CF locally
 ```
 export GCP_PROJECT='rg-autoscaler'
 export mig_name='testing-mig'
@@ -13,9 +14,9 @@ pip3 install -r manual-scaler/requirements.txt --upgrade
 python3 manual-scaler/main.py
 ```
 
-## URLS:
+## URLS & Parameters:
 `/` - Runs the site \
-`/set?start={DATETIME}&end={DATETIME}&SIZE{INT}` - Sets the MIG to a static size during set period
+`/?cron={DATETIME}` - Updates the schedule for 
 
 ## Permissions:
 - `cloudscheduler.jobs.pause`
@@ -25,4 +26,4 @@ python3 manual-scaler/main.py
 
 
 ## Logic
-Reads all the 
+Reads all the existing Schedules and enables the pause / stopping.
