@@ -23,7 +23,6 @@ project = os.environ['GCP_PROJECT']
 region = os.environ['mig_region']
 instance_group_manager = os.environ['mig_name']
 ScaleUpThreshold = int(os.environ['upper_session_count'])
-ScaleDownThreshold = int(os.environ['lower_session_count'])
 
 # App Variables
 InstanceList = []
@@ -152,7 +151,7 @@ def AddInstance(NewSize):
 
 # Handle Autoscaling
 def Autoscale():
-    global InstanceList, service, credentials, project, region, instance_group_manager, ScaleUpThreshold, ScaleDownThreshold
+    global InstanceList, service, credentials, project, region, instance_group_manager, ScaleUpThreshold
     # Function to autoscale the Managed instance group
     TotalSessionCount = 0
     AverageSessionCount = 0

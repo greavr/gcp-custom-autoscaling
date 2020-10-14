@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MIG {{ MIG }}</title>
+</head>
+
+<body>
+{% block content %}
+
+    <h3>Autoscaling Schedule for {{ MIG }} in the {{ REGION }} region</h3>
+
+    <h4>Autoscaling default behaviour</h4>
+    This is the default base autoscaling enable / disable timeline for the Managed Instance Group (MIG)
+    <table border="1px">
+        <tr>
+            <th>MIG Name</th>
+            <th>Current MIG Size</th>
+            <th>Current MIG Schedule</th>
+            <th>Schedule Status</th>
+            <th>Edit</th>
+        </tr>
+        <tr>
+            <td>{{ MIG }}</td>
+            <td>{{ MIGSIZE }}</td>
+            <td>{{ DefaultSchedule['schedule'] }}</td>
+            <td><a href="/toggle/?job={{ DefaultSchedule['name'] }}&state={{ DefaultSchedule['state'] }}">{{ DefaultSchedule['state'] }}</a></td>
+            <td><a href="/edit/?job={{ DefaultSchedule['name'] }}">Edit</a></td>
+        </tr>
+    </table>
+
+    <h4>Custom Autoscaling default behaviour</h4>
+    This is the customautoscaling enable / disable timeline for the Managed Instance Group (MIG)
+    <table border="1px">
+        <tr>
+            <th>MIG Name</th>
+            <th>Schedule</th>
+            <th>Set Size To</th>
+            <th>Status</th>
+            <th>Edit</th>
+            <th>Delete</th>
+        </tr>
+    {% for aSchedule in CustomSchedule %}
+        <tr>
+            <td>{{ MIG }}</td>
+            <td>{{ aSchedule['schedule'] }}</td>
+            <td>{{ aSchedule['description'] }}</td>
+            <td><a href="/toggle/?job={{ aSchedule['name'] }}&state={{ aSchedule['state'] }}">{{ aSchedule['state'] }}</a></td>
+            <td><a href="/edit/?job={{ aSchedule['name'] }}">Edit</a></a></td>
+            <td><a href="/delete/?job={{ aSchedule['name'] }}">Delete</a></a></td>
+        </tr>
+    {% endfor %}
+    </table>
+
+    <hr />
+    <h3>Create / Edit Behavior</h3>
+    <form action="/save" method="POST">
+        {% if job is defined %}
+            <input type="hidden" id="fulljobName" name="fulljobName" value="{{job.name}}">
+            {% if job.name != DefaultSchedule['name'] %}
+                <b>Set MIG Size To: </b><input type="text" id="size" name="size" value="{{ job.description }}"><br />
+            {% endif %}
+            <b>Set CRON Schedule To: </b><input type="text" id="schedule" name="schedule" value="{{ job.schedule }}"><br />
+            {% if job.state %}
+                <b>Enable:</b><input type="checkbox" name="state" id="state" value="ENABLED" checked>
+            {% else %}
+                <b>Enable:</b><input type="checkbox" name="state" id="state" value="ENABLED">
+            {% endif %}
+
+        {% else %}
+            <input type="hidden" id="fulljobName" name="fulljobName" value="">
+            <b>Set MIG Size To: </b><input type="text" id="size" name="size" value=""><br />
+            <b>Set CRON Schedule To: </b><input type="text" id="schedule" name="schedule" value=""><br />
+        {% endif %}
+        <br /><input type="submit" value="Submit"> 
+    </form>
+       
+
+{% endblock %}
