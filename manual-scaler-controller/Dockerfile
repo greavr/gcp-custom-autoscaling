@@ -1,4 +1,4 @@
-FROM python:alpine
+FROM python
 
 MAINTAINER Rick Greaves "rgreaves@google.com"
 

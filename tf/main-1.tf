@@ -3,6 +3,7 @@
 resource "google_project_service" "enable-vpc-access" {
   project = var.gcp-project-name
   service = "vpcaccess.googleapis.com"
+  disable_on_destroy = false
 }
 
 resource "google_vpc_access_connector" "connector" {
@@ -83,7 +84,7 @@ resource "google_project_service" "enable-schedule" {
 }
 
 resource "google_cloud_scheduler_job" "check_sessions" {
-  name             = format("check_sessions-%s", var.bucket-name)
+  name             = format("check_sessions-%s", var.mig-name)
   description      = "Check Server Sessions"
   schedule         = var.cron-schedule
   time_zone        = "America/New_York"

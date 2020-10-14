@@ -7,7 +7,7 @@ It is to be called by Cron Task
 
 ## Running the CF locally
 ```
-export GCP_PROJECT='rg-autoscaler'
+export GCP_PROJECT='rg-stateful-autoscaler'
 pip3 install -r Manual-Scaler-set-mig/requirements.txt --upgrade
 python3 Manual-Scaler-set-mig/main.py
 ```

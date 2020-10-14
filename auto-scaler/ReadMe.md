@@ -1,6 +1,6 @@
 ## Running the CF Code Locally
 ```
-export GCP_PROJECT='rg-autoscaler'
+export GCP_PROJECT='rg-stateful-autoscaler'
 export mig_region='us-west2'
 export mig_name='testing-mig'
 export upper_session_count=15

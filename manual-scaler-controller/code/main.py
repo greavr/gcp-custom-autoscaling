@@ -1,18 +1,18 @@
-from googleapiclient import discovery
-import google.cloud.logging
-from oauth2client.client import GoogleCredentials
-from google.cloud import monitoring_v3
-import os
-import requests
-import json
-from datetime import datetime
-import time
-import math
-import logging
-import random
-from re import search
-from flask import Flask, render_template, flash, request, redirect
 import base64
+import json
+import logging
+import math
+import os
+import random
+import time
+from datetime import datetime
+from re import search
+
+import google.cloud.logging
+import requests
+from flask import Flask, flash, redirect, render_template, request
+from googleapiclient import discovery
+from oauth2client.client import GoogleCredentials
 
 # Build Credentials
 credentials = GoogleCredentials.get_application_default()

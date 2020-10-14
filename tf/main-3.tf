@@ -3,7 +3,7 @@
 data "archive_file" "set-mig" {
   type        = "zip"
   output_path = "../artifacts/set-mig.zip"
-  source_dir = "../Mainual-Scaler-set-mig"
+  source_dir = "../Manual-Scaler-set-mig"
 }
 
 # Upload to GCS
@@ -32,7 +32,7 @@ resource "google_cloudfunctions_function" "set-mig-function" {
 }
 
 # Assign permissions to allow anon invocation
-resource "google_cloudfunctions_function_iam_member" "invoker" {
+resource "google_cloudfunctions_function_iam_member" "set-mig-invoker" {
   project        = var.gcp-project-name
   cloud_function = google_cloudfunctions_function.set-mig-function.name
   role   = "roles/cloudfunctions.invoker"

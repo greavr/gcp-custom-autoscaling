@@ -1,7 +1,7 @@
 # GCP Project Name
 variable "gcp-project-name" {
     type = string
-    default = "rg-autoscaler"
+    default = "rg-stateful-autoscaler"
 }
 
 # GCP VPC
@@ -77,8 +77,20 @@ variable "max_sessions" {
     default = 15
 }
 
-# Cloud Schedule timing
+# Cloud Schedule timing for default autoscheduler
 variable "cron-schedule" {
     type = string
     default = "*/5 * * * *"
+}
+
+# Docker image for the Manual Scheduler 
+variable "manual-scheduler-docker-image" {
+    type = string
+    default = "gcr.io/rgreaves-sandbox/manual-scaler"
+}
+
+# Cloud Run Region
+variable "cr-region" {
+    type = string
+    default = "us-west1"
 }
