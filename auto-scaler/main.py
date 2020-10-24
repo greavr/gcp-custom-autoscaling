@@ -3,6 +3,7 @@ import google.cloud.logging
 from oauth2client.client import GoogleCredentials
 from google.cloud import monitoring_v3
 from google.cloud import datastore
+from google.cloud import pubsub_v1
 import os
 from pprint import pprint
 import requests

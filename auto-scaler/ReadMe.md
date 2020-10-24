@@ -24,3 +24,4 @@ python3 auto-scaler/main.py
 - `datastore.entities.update`
 - `logging.logEntries.create`
 - `monitoring.timeSeries.create`
+- `pubsub.topics.publish`
