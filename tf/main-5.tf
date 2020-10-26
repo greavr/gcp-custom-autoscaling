@@ -8,7 +8,6 @@ resource "google_project_service" "enable-pubsub" {
 # Pub Sub Topic
 resource "google_pubsub_topic" "scale-events-topic" {
   name = format("%s-scaling-events",var.mig-name)
-
   depends_on = [google_project_service.enable-pubsub]
 }
 

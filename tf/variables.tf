@@ -77,6 +77,12 @@ variable "max_sessions" {
     default = 15
 }
 
+# Cloud Function Min Mig Size Default
+variable "min_mig_size" { 
+    type = number
+    default = 5
+}
+
 # Cloud Schedule timing for default autoscheduler
 variable "cron-schedule" {
     type = string

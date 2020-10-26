@@ -62,6 +62,8 @@ resource "google_cloudfunctions_function" "autoscaler-function" {
     "mig_name" = var.mig-name
     "mig_region" = var.region
     "upper_session_count" = var.max_sessions
+    "lower_mig_size" = var.min_mig_size
+    "pub_sub_topic" = google_pubsub_topic.scale-events-topic.name
   }
 
    depends_on = [google_vpc_access_connector.connector]

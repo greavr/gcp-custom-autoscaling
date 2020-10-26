@@ -32,6 +32,10 @@ resource "google_cloud_run_service" "manual-scheduler" {
           name = "GCP_PROJECT"
           value = var.gcp-project-name
         }
+        env { 
+          name = "autoscaler_cf_id"
+          value = google_cloudfunctions_function.autoscaler-function.id
+        }
       }
     }
   }

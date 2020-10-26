@@ -5,8 +5,9 @@ This function enables advanced scheduling tooling. This runs of a docker image. 
 `mig_name` - Name of the managed instance group (mig) \
 `mig_region` - Region of the mig \
 `GCP_PROJECT` - Auto set value for GCP project \
-`mig_size_cf` - HTTPS target of the MIG CF
-`autoscaler_cf` - HTTPS target for the default LB
+`mig_size_cf` - HTTPS target of the MIG CF \
+`autoscaler_cf` - HTTPS target for the default Autoscaler \
+`autoscaler_cf_id` - ID of the Cloud Function autoscaler
 
 ## Running the CF locally
 ```

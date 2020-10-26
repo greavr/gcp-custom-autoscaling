@@ -1,18 +1,17 @@
-from googleapiclient import discovery
-import google.cloud.logging
-from oauth2client.client import GoogleCredentials
-from google.cloud import monitoring_v3
-from google.cloud import datastore
-from google.cloud import pubsub_v1
-import os
-from pprint import pprint
-import requests
 import json
-from datetime import datetime
-import time
-import math
 import logging
+import math
+import os
 import random
+import sys
+import time
+from datetime import datetime
+
+import google.cloud.logging
+import requests
+from google.cloud import datastore, monitoring_v3, pubsub_v1
+from googleapiclient import discovery
+from oauth2client.client import GoogleCredentials
 
 # Build Credentials
 credentials = GoogleCredentials.get_application_default()
@@ -24,9 +23,30 @@ project = os.environ['GCP_PROJECT']
 region = os.environ['mig_region']
 instance_group_manager = os.environ['mig_name']
 ScaleUpThreshold = int(os.environ['upper_session_count'])
+lower_mig_size = int(os.environ['lower_mig_size'])
+pubsub_topic = os.environ['pub_sub_topic']
 
 # App Variables
 InstanceList = []
+
+# Publish Topic Notification():
+def PublishPubSub(Type,Body):
+    global pubsub_topic
+    # Function to pass messages, two types:
+    ## Add - Created New Instance, msg body includes new instance name, zone and private IP
+    ## Remove - Removed Instances, msg body is a list of removed instances, with name
+
+    # Format list for PubSub
+    if type(Body) is list:
+        Body = ','.join(map(str, Body)) 
+
+    try:
+        publisher = pubsub_v1.PublisherClient()
+        publisher.publish(pubsub_topic,data = Body.encode('utf-8'),Type="True")
+        logging.info(f"Published PubSub MSG {Type}, {Body}. To the following Topic: {pubsub_topic}")
+    except:
+        e = sys.exc_info()[0]
+        logging.error(f"Failed to publish PubSub MSG {Type}, {Body}. To the following Topic: {pubsub_topic}. Error Message {e}")
 
 # Get all Instances in Managed Instance Group
 def GetInstanceList():
@@ -129,9 +149,11 @@ def RemoveServers(InstanceList):
     #Build the request body
     ## Build instance url zones/{ZONE}/instances/{INSTANCE NAME}
     FormatedInstances = []
+    PubSubMsg = []
     for aInstance in InstanceList:
         serverString = f"zones/{InstanceList[aInstance]}/instances/{aInstance}"
         FormatedInstances.append(serverString)
+        PubSubMsg.append({ "Name" : aInstance})
 
 
     RequestBody = {}
@@ -141,23 +163,45 @@ def RemoveServers(InstanceList):
     try:
         request = service.regionInstanceGroupManagers().deleteInstances(project=project, region=region, instanceGroupManager=instance_group_manager, body=RequestBody)
         response = request.execute()
+        logging.info(response)
+        # Update PubSub
+        PublishPubSub("RemoveServers",PubSubMsg)
     except:
-        logging.error("Unable to remove instances from MIG")
+        e = sys.exc_info()[0]
+        logging.error(f"Unable to remove instances from MIG. Error Message: {e}")
 
 #Function Add Instance to MIG
 def AddInstance(NewSize):
     global service, credentials, project, instance_group_manager, region
-    request = service.regionInstanceGroupManagers().resize(project=project, region=region, instanceGroupManager=instance_group_manager, size=NewSize)
-    response = request.execute()
 
+    try:
+    # First try to increase MIG size, then report the list of servers
+        request = service.regionInstanceGroupManagers().resize(project=project, region=region, instanceGroupManager=instance_group_manager, size=NewSize)
+        response = request.execute()
+        logging.info(f"Increased the Managed Instance Group {instance_group_manager} to size of {NewSize}")
+
+        # Get List Of instances
+        NewList = GetInstanceList()
+        #Format list for pubsub
+        NewInstanceList = []
+        for aInstance in NewList:
+            instanceIp = GetInstanceIP(zone=aInstance["zone"],instance=aInstance["name"])
+            aServer = { "Name" : aInstance["name"], "IP" : instanceIp}
+            NewInstanceList.append(aServer)
+        
+        #Send PubSub Message
+        PublishPubSub("NewServerList",NewInstanceList)
+    except:
+        e = sys.exc_info()[0]
+        logging.error(f"Failed to increase the Managed Instance Group {instance_group_manager} to size of {NewSize}. Error Message {e}")
+        
 # Handle Autoscaling
 def Autoscale():
-    global InstanceList, service, credentials, project, region, instance_group_manager, ScaleUpThreshold
+    global InstanceList, service, credentials, project, region, instance_group_manager, ScaleUpThreshold, lower_mig_size
     # Function to autoscale the Managed instance group
     TotalSessionCount = 0
     AverageSessionCount = 0
     ScaleDownCount = 0
-    ScaleUpValue = 0
     ScaleDownInstanceList = {}
     
     # First get current status
@@ -172,7 +216,11 @@ def Autoscale():
 
     # Now check to see how many servers need to be added
     ServerCountAfterScaleDown = len(InstanceList)-ScaleDownCount
-    AverageSessionCount = round(TotalSessionCount/ServerCountAfterScaleDown)
+    try:
+        # Used to catch 0 sessions on all nodes
+        AverageSessionCount = round(TotalSessionCount/ServerCountAfterScaleDown)
+    except:
+        AverageSessionCount = 0
     logging.info("Currently have %s Sessions over %s hosts, with an average of %s on None-zero session servers",str(TotalSessionCount),str(ServerCountAfterScaleDown),str(AverageSessionCount))
 
     # Autoscale up logic
@@ -181,17 +229,27 @@ def Autoscale():
         if ScaleDownCount > 0:
             ScaleDownCount -= 1
             logging.info("Not resizing due to instance with 0 sessions found")
-            ScaleDownInstanceList.pop(0)
+            ScaleDownInstanceList.popitem()
         else:
             # If not add a Server
             NewSize = len(InstanceList)+1
-            logging.info("Increasing %s MIG size to %s", str(instance_group_manager), str(NewSize))
             AddInstance(NewSize)
     
     # Autoscale down logic
-    if ScaleDownCount > 0:
+    ## First Ensure that Scale down will not break the lower bound
+    TargetServerCount = len(ScaleDownInstanceList) - lower_mig_size
+    NumToRemove = len(ScaleDownInstanceList) - TargetServerCount
+    logging.info(f"Number of servers to be spared from remove list: {NumToRemove}. Total servers to be removed: {str(TargetServerCount)}")
+    if NumToRemove >= 1:
+        #Loop Through Popping
+        count = 0
+        while (count < NumToRemove):
+            count += 1
+            ScaleDownInstanceList.popitem()
+            ScaleDownCount -= 1
+
         # Itterate through instances and remove them
-        logging.info("Scaling down %s due to 0 sessions", str(ScaleDownInstanceList))
+        logging.info(f"Scaling down {ScaleDownInstanceList} due to 0 sessions")
         RemoveServers(ScaleDownInstanceList)
 
 # Save Values to Datastore
@@ -217,18 +275,18 @@ def SaveToDatastore():
     # Saves the entity
     datastore_client.put(task)
 
-
 ## Main Loop
 def MainThread(request):
-    global InstanceList, LoggingClient
+    global InstanceList, LoggingClient, instance_group_manager, lower_mig_size
 
     # Setup the logger
     LoggingClient.get_default_handler()
     LoggingClient.setup_logging()
-    
-    
+      
     # Main Loop
     InstanceList = GetInstanceList()
+    ServerCount = len(InstanceList)
+    logging.info(f"Autoscaling the Instance Group: {instance_group_manager}, current size is: {ServerCount}, and Minimum size set is: {lower_mig_size}")
 
     # Itterate over instances to get session count
     ReviewInstances()
@@ -236,8 +294,13 @@ def MainThread(request):
     # Save Session Count to Stackdriver
     LogMetrics()
 
-    # Autoscale
-    Autoscale()
+    # If the list is the same size than the Lower Mig size then escape now:
+    if ServerCount > lower_mig_size:
+        # Autoscale
+        Autoscale()
+    elif ServerCount < lower_mig_size:
+        logging.info(f"Instance Group: {instance_group_manager}, current size is: {ServerCount}, and Minimum size set is: {lower_mig_size}. Resizing to minimum size")
+        AddInstance(lower_mig_size)  
 
     # Save Values to DS
     SaveToDatastore()
